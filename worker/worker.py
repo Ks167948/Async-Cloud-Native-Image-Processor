@@ -4,7 +4,8 @@ import time
 import os
 
 # Connect to the same Redis container
-r = redis.Redis(host='redis_db', port=6379, decode_responses=True)
+redis_url = os.getenv("REDIS_URL", "redis://redis_db:6379")
+r = redis.from_url(redis_url, decode_responses=True)
 
 print("Worker started. Waiting for jobs...")
 

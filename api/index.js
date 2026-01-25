@@ -5,7 +5,8 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const redis = new Redis({ host: "redis_db", port: 6379 }); // Connect to Docker container named 'redis_db'
+const redisUrl = process.env.REDIS_URL || "redis://redis_db:6379";
+const redis = new Redis(redisUrl);
 
 app.use(express.static("public"));
 
