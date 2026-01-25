@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # 1. The Database/Queue
+  redis_db:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # 2. The API
+  api_service:
+    build: ./api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis_db
+    volumes:
+      # CRITICAL: Map the "uploads" folder on your laptop to "/app/uploads" inside the container
+      - ./uploads:/app/uploads
+
+  # 3. The Worker
+  worker_service:
+    build: ./worker
+    depends_on:
+      - redis_db
+    volumes:
+      # CRITICAL: Map the SAME folder so the worker can see the files the API uploaded
+      - ./uploads:/app/uploads
