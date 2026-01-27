@@ -14,15 +14,21 @@ services:
       - "3000:3000"
     depends_on:
       - redis_db
-    volumes:
-      # CRITICAL: Map the "uploads" folder on your laptop to "/app/uploads" inside the container
-      - ./uploads:/app/uploads
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
   # 3. The Worker
   worker_service:
     build: ./worker
     depends_on:
       - redis_db
-    volumes:
-      # CRITICAL: Map the SAME folder so the worker can see the files the API uploaded
-      - ./uploads:/app/uploads
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}

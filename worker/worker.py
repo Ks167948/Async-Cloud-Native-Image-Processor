@@ -1,36 +1,58 @@
 import redis
 import json
-import time
 import os
+import time
+import boto3
+from PIL import Image
+from io import BytesIO
 
-# Connect to the same Redis container
+# Redis Connection
 redis_url = os.getenv("REDIS_URL", "redis://redis_db:6379")
-r = redis.from_url(redis_url, decode_responses=True)
+# Handle the "rediss://" vs "redis://" issue automatically
+if redis_url.startswith("rediss://"):
+    # Secure connection for Cloud
+    r = redis.from_url(redis_url, decode_responses=True, ssl_cert_reqs=None)
+else:
+    # Local connection
+    r = redis.from_url(redis_url, decode_responses=True)
 
-print("Worker started. Waiting for jobs...")
+# AWS S3 Connection
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+BUCKET_NAME = os.getenv('AWS_BUCKET_NAME')
+
+print("Worker started. Listening for S3 jobs...")
 
 while True:
-    # 1. 'brpop' blocks the code here until a new item appears in 'task_queue'
-    # This is efficient; it doesn't spin the CPU while waiting.
-    # It returns a tuple: (queue_name, data)
     _, task_data = r.brpop('task_queue')
-    
     task = json.loads(task_data)
-    filename = task['filename']
+    s3_key = task['key']
     
-    print(f"Processing {filename}...")
-    
-    # 2. Simulate heavy processing (e.g., resizing, AI analysis)
-    # In real life, you'd use PIL to resize here.
-    time.sleep(5) 
-    
-    # 3. Rename the file to mark it as 'processed' (Simple proof of work)
-    # Paths must match where we mounted the volume in Docker
-    old_path = f"/app/uploads/{filename}"
-    new_path = f"/app/uploads/processed_{filename}"
+    print(f"Processing S3 file: {s3_key}...")
     
     try:
-        os.rename(old_path, new_path)
-        print(f"Success! Renamed to processed_{filename}")
-    except FileNotFoundError:
-        print("Error: File not found. Did volumes mount correctly?")
+        # 1. Download image from S3 into memory (no hard drive needed!)
+        response = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
+        image_data = response['Body'].read()
+        
+        # 2. Process image (Resize)
+        img = Image.open(BytesIO(image_data))
+        img.thumbnail((128, 128))
+        
+        # 3. Save processed image to a memory buffer
+        buffer = BytesIO()
+        img.save(buffer, format="JPEG")
+        buffer.seek(0) # Rewind the buffer to the beginning
+        
+        # 4. Upload back to S3
+        new_filename = f"processed/{os.path.basename(s3_key)}"
+        s3.put_object(Bucket=BUCKET_NAME, Key=new_filename, Body=buffer, ContentType='image/jpeg')
+        
+        print(f"Success! Uploaded thumbnail to: {new_filename}")
+        
+    except Exception as e:
+        print(f"Error processing {s3_key}: {e}")
