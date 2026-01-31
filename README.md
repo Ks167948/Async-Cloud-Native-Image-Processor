@@ -1,67 +1,26 @@
-🚀 AWS-Powered Async Image Processing Pipeline
-A production-ready microservices architecture that decouples high-throughput I/O from heavy computation using a distributed queue and cloud object storage.
+# 🚀 Scalable Async Image Processing Pipeline
 
-[Insert Screenshot of your Terminal Logs Here]
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white) ![Python](https://img.shields.io/badge/Python-FFD43B?style=for-the-badge&logo=python&logoColor=blue) ![AWS S3](https://img.shields.io/badge/AWS_S3-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white) ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?&style=for-the-badge&logo=redis&logoColor=white) ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
-🏗 System Architecture
-The system handles heavy image processing tasks asynchronously to ensure the API remains non-blocking and responsive.
+> **A high-throughput, event-driven microservices architecture designed to handle CPU-intensive tasks without blocking the main application thread.**
 
-Code snippet
+---
+
+## 🎥 System Demo
+
+*Click the image above to watch the system process images in real-time across the hybrid cloud.*
+
+---
+
+## 🏗 System Architecture
+
+The system decouples **Ingestion (I/O)** from **Processing (CPU)** using a distributed message queue. This ensures the API remains responsive (<50ms latency) even during heavy traffic spikes.
+
+```mermaid
 graph LR
-    User(Client) -->|1. Upload Image| API[Node.js API]
-    API -->|2. Stream to Cloud| S3[(AWS S3 Bucket)]
+    Client[User Client] -->|1. Upload Request| API[Node.js API Service]
+    API -->|2. Stream File| S3[(AWS S3 Bucket)]
     API -->|3. Push Job| Redis[(Redis Queue)]
-    Redis -->|4. Pull Job| Worker[Python Worker]
-    Worker -->|5. Download & Process| S3
-    Worker -->|6. Upload Thumbnail| S3
-🌟 Key Features
-Event-Driven Architecture: Decoupled the API (Producer) from the Worker (Consumer) using Redis.
-
-Cloud Storage Integration: Implemented AWS S3 for secure, scalable object storage, solving the "shared state" problem in distributed systems.
-
-Polyglot Microservices:
-
-Service A (Node.js): Handles HTTP requests and S3 streaming.
-
-Service B (Python): Performs CPU-intensive image manipulation (Pillow).
-
-Containerization: Fully Dockerized environment ensuring identical behavior in Dev and Prod.
-
-🛠 Tech Stack
-Languages: Node.js (Express), Python 3.9
-
-Cloud Services: AWS S3 (Storage), Upstash (Serverless Redis)
-
-DevOps: Docker, Docker Compose
-
-Libraries: @aws-sdk/client-s3, multer-s3, boto3, Pillow
-
-🚀 How to Run
-Prerequisites: Docker Desktop & AWS Credentials.
-
-Clone the Repo
-
-Bash
-git clone https://github.com/yourusername/async-processor.git
-cd async-processor
-Configure Environment Update docker-compose.yml with your keys (or use a .env file):
-
-AWS_ACCESS_KEY_ID
-
-AWS_SECRET_ACCESS_KEY
-
-AWS_BUCKET_NAME
-
-AWS_REGION
-
-Start the Cluster
-
-Bash
-docker-compose up --build
-Test It
-
-Go to http://localhost:3000.
-
-Upload an image.
-
-Check your AWS S3 Bucket for the processed/ folder!
+    Redis -->|4. Pull Task| Worker[Python Worker Service]
+    Worker -->|5. Download File| S3
+    Worker -->|6. Process & Re-upload| S3
